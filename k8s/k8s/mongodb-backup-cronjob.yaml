@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongodb-backup
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: mongodb-backup
+              image: bitnami/mongodb
+              command:
+                - "/bin/sh"
+                - "-c"
+                - |
+                  echo "Création du dump..."
+                  mongodump --uri="mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${MONGODB_HOST}" --out=/tmp/dump
+                  echo "Dump créé !"
+              env:
+                - name: MONGODB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mongodb
+                      key: mongodb-root-password
+                - name: MONGODB_HOST
+                  value: mongodb-headless:27017
+                - name: MONGODB_USER
+                  value: root
+ 

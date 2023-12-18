@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: atos06/projet-node
+          image: atos06/gke-node-api
           ports:
             - containerPort: 80
           env:

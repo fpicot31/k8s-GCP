@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: atos06/projet-vue
+          image: atos06/gke-vue
           ports:
             - containerPort: 80
           volumeMounts:
@@ -30,7 +30,7 @@ spec:
               mountPath: /etc/nginx/conf.d/
           resources:
             requests:
-              memory: "512Mi"
+              memory: "128Mi"
               cpu: "250m"
       volumes:
         - name: nginx-config-volume

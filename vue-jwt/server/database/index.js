@@ -6,8 +6,8 @@ const mongodbhost = process.env.MONGODB_HOST;
 const connectionString = `mongodb://${mongodbUser}:${mongodbPassword}@${mongodbhost}`;
 
 mongoose
-  .connect(connectionString)
-  .then(() => {
-    console.log('Connected !');
-  })
-  .catch((e) => console.log(e));
+    .connect(connectionString)
+    .then(() => {
+        console.log('Connected !');
+    })
+.catch((e) => console.log(e));

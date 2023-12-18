@@ -1,3 +1,4 @@
+
 const router = require('express').Router();
 const UserModel = require('../database/models/user.model');
 const bcrypt = require('bcrypt');
@@ -15,7 +16,6 @@ router.post('/', async (req, res) => {
     await user.save();
     res.json(null);
   } catch (err) {
-    console.error(err);
     res.status(400).json("Erreur lors de l'inscription");
   }
 });
@@ -41,4 +41,4 @@ router.get('/current', async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = router; 

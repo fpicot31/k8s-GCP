@@ -1,0 +1,100 @@
+### connection sur GCP ####
+
+# aller sur https://console.glood.com  avec login : compte google
+
+# creer un cluster kubernetes bouton CREER par defaut
+
+# installer gcloud
+https://cloud.google.com/sdk/docs/install?hl=fr
+sudo apt-get update
+sudo apt-get install apt-transport-https ca-certificates gnupg curl sudo
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+sudo apt-get update && sudo apt-get install google-cloud-cli
+
+# installer le plugin voir : https://cloud.google.com/blog/products/containers-kubernetes/kubectl-auth-changes-in-gke
+sudo apt-get install google-cloud-sdk-gke-gcloud-auth-plugin
+
+# connection au cluster - cliquer sur connect
+kubectl config get-contexts
+kubectl config current-context
+gcloud container clusters get-credentials cformidable --region europe-west1 --project tactile-flash-408507
+gcloud init // entrer choix 1
+gcloud container clusters get-credentials cformidable --region europe-central2 --project tactile-flash-408507
+
+### Tester application en local ###
+# tester l'application qui aune application front vue et une application backend node qui fournit l'API
+cd vue-jwt/frontend
+npm install
+npm run dev
+
+cd vue-jwt/server
+npm install express
+npm start
+
+http://localhost:5173/
+
+
+###  cluster k8s ######
+
+# creation  des images
+cd vue-jwt/frontend
+docker build -t atos06/gke-vue .
+docker push atos06/gke-vue 
+
+cd vue-jwt/server
+docker build -t atos06/gke-node-api .
+docker push atos06/gke-node-api
+
+
+
+### Frontend ######
+
+# creation du secret dockerhub pour l'acces a l'image privé atos06/gke-vue dockerhub
+# creer un secret sous dockerhub : myaccoubt->security-> new access toke  
+kubectl create secret docker-registry docker-hub-secret --docker-server=https://index.docker.io/v1/ --docker-username=atos06 --docker-password=dckr_pat_gGvb9n4bUuA01_RUjj2QBI8S0O8 --docker-email=francois.picot63@gmail.com
+
+# deploiement du frontend et le service d 'acces aux pods
+cd projet-GCP/k8s/k8s
+kubectl apply -f nginx-configmap.yaml 
+kubectl apply -f frontend.deployment.yaml 
+kubectl apply -f frontend.service.yaml 
+kubectl get pod -w
+kubectl get events // si pb de statuskubectl apply -f frontend.deployment.yaml
+
+
+### mongo db #####
+
+# install de mongo db dans le cluster avec helm
+cd projet-GCP/k8s/helm
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install -f mongodb.yaml mongodb bitnami/mongodb
+
+# test de a connexion mongodb avec compass
+kubectl get secret --namespace default mongodb -o jsonpath="{.data.mongodb-root-password}" | base64 -d
+kubectl port-forward --namespace default service/mongodb-headless 27017
+Cliquez sur Fill in connection fields  en direct puis sur Authentification > Username / Password.
+localhost:2017/root/<mot de passe>
+
+
+### Backend API Node ######
+
+# generer la cle ssh
+cd projet-GCP/k8s/k8s
+(dos2unix generate_secrets.sh )
+bash ./generate_secrets.sh 
+kubectl get secrets
+
+# lancement du service backden node api
+kubectl apply -f api.deployment.yaml 
+kubectl apply -f api.service.yaml 
+kubectl get pod -w
+kubectl logs  api-deployment-b687dd897-hvpxx
+
+
+### Ingress ####
+
+# lancement : pour voir ingress recherche "services kunertes" dans gcp
+kubectl apply -f ingress.yaml 
+kubectl get ingress app-ingress
+
+
