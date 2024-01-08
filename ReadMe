@@ -24,11 +24,11 @@ gcloud container clusters get-credentials cformidable --region europe-west1 --pr
 
 ### Tester application en local ###
 # tester l'application qui aune application front vue et une application backend node qui fournit l'API
-cd vue-jwt/frontend
+cd app/frontend
 npm install
 npm run dev
 
-cd vue-jwt/server
+cd app/server
 npm install express
 npm start
 
@@ -38,27 +38,27 @@ http://localhost:5173/
 docker run --rm -d --name test1 -p 8085:80  atos06/gke-vue:d26b1a7
 # puis localhost:8085
 
-###  cluster k8s ######
 
-# creation  des images dans le docker hub
-cd vue-jwt/frontend
+
+### creation  des images dans le docker hub ###
+cd app/frontend
 docker build -t atos06/gke-vue .
 docker push atos06/gke-vue 
 
-cd vue-jwt/server
+cd app/server
 docker build -t atos06/gke-node-api .
 docker push atos06/gke-node-api
 
 
 
-### Frontend ######
+### Cluster k8s #####
+cd projet-GCP/k8s/k8s
 
 # creation du secret dans le cluster qu'on appelle docker-hub-secret pour l'acces a l'image privé atos06/gke-vue dockerhub
 # creer un secret sous dockerhub : myaccoubt->security-> new access token  
 kubectl create secret docker-registry docker-hub-secret --docker-server=https://index.docker.io/v1/ --docker-username=atos06 --docker-password=dckr_pat_gGvb9n4bUuA01_RUjj2QBI8S0O8 --docker-email=francois.picot63@gmail.com
 
 # deploiement du frontend et le service d 'acces aux pods
-cd projet-GCP/k8s/k8s
 kubectl apply -f nginx-configmap.yaml 
 kubectl apply -f frontend.deployment.yaml 
 kubectl apply -f frontend.service.yaml 
@@ -66,60 +66,41 @@ kubectl get pod -w
 kubectl get events # si pb de status kubectl apply -f frontend.deployment.yaml
 
 
-### mongo db #####
-
-# install de mongo db dans le cluster avec helm
+# Creation de la base mongodb dans le cluster
 cd projet-GCP/k8s/helm
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm install -f mongodb.yaml mongodb bitnami/mongodb
 kubectl get pod -w
 
-
-# test de a connexion mongodb avec compass (noyez le mot de passe de la commande)
+# test de la connexion mongodb avec compass (noyez le mot de passe de la commande)
 # lancer compass
 kubectl get secret --namespace default mongodb -o jsonpath="{.data.mongodb-root-password}" | base64 -d
 kubectl port-forward --namespace default service/mongodb-headless 27017
 Cliquez sur Fill in connection fields  en direct puis sur Authentification > Username / Password.
 localhost:2017/root/<mot de passe>
 
-
-### Backend API Node ######
-
-# generer la cle ssh
+# Génération de la paire de clés RSA et du secret Kubernetes avec les clés générées 
 cd projet-GCP/k8s/k8s
 (dos2unix generate_secrets.sh )
 bash ./generate_secrets.sh 
 kubectl get secrets
 
-# lancement du service backden node api
+# lancement du service backend node api
 kubectl apply -f api.deployment.yaml 
 kubectl apply -f api.service.yaml 
 kubectl get pod -w
 kubectl logs  api-deployment-b687dd897-hvpxx  // doit retourner Connected !
 
-
-### Ingress ####
-
-# lancement : pour voir ingress recherche "services kunertes" dans gcp
+# ingress : pour voir ingress recherche "services kubnertes" dans gcp
 kubectl apply -f ingress.yaml 
 kubectl get ingress app-ingress
+# acceder à l'ihm avec l'IP externe ingress
 
 
 ###  Backup mongodb #####
 
-# lancer le cron de backup
-kubectl apply -f mongodb-backup-cronjob.yaml 
-kubectl get cronjob.batch mongodb-backup  -w # attendre qu'il soit actif=1
-kubectl get pod -w
-kubectl logs mongodb-backup-28383184-vv9wl
-kubectl delete cronjobs.batch  mongodb-backup 
-
-
-#### creation d'un dump stocker dans le cloud ####
-
 # creer un bucket : voir doc 
 # cloud storage-> bucket -> creer : mongodb-backup-cformidable par exemple
-
 
 # creer un compte de service
 gcloud iam service-accounts create  cronjob-mongodb
@@ -147,4 +128,8 @@ kubectl logs mongodb-backup-28383184-vv9wl  # allez voir le bucket et les versio
 kubectl delete cronjobs.batch  mongodb-backup
 kubectl get cronjob.batch
 
+# lancer le job de restauration
+kubectl apply -f mongodb-restore-job.yaml 
+kubectl get pod -w
+kubectl logs mongodb-restore-28383184-vv9wl
 
