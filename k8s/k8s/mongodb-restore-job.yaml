@@ -24,9 +24,8 @@ spec:
               echo "Décompression du dump"
               gunzip /tmp/dump.gz
               echo "Restauration de la base de données"
-              mongorestore --drop --uri="mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${MONGODB_HOST}" --archive="/tmp/dump"
+              mongorestore --drop --uri="mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${MONGODB_HOST}/?readPreference=secondary" --archive="/tmp/dump"
               echo "Base de données restaurée"
-
           volumeMounts:
             - name: gcs-credentials
               mountPath: /etc/gcs-credentials

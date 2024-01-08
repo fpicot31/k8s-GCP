@@ -4,7 +4,8 @@
 
 # creer un cluster kubernetes bouton CREER par defaut
 
-# installer gcloud
+# installer gcloud car on va en avoir besoin  pour se connecter
+# taper gcloud cli dans le navigateur pour arriver a la doc d installation
 https://cloud.google.com/sdk/docs/install?hl=fr
 sudo apt-get update
 sudo apt-get install apt-transport-https ca-certificates gnupg curl sudo
@@ -19,7 +20,7 @@ kubectl config get-contexts
 kubectl config current-context
 gcloud container clusters get-credentials cformidable --region europe-west1 --project tactile-flash-408507
 gcloud init // entrer choix 1
-gcloud container clusters get-credentials cformidable --region europe-central2 --project tactile-flash-408507
+gcloud container clusters get-credentials cformidable --region europe-west1 --project tactile-flash-408507
 
 ### Tester application en local ###
 # tester l'application qui aune application front vue et une application backend node qui fournit l'API
@@ -33,10 +34,13 @@ npm start
 
 http://localhost:5173/
 
+# si on veut tester le container dockerhub. Par exemple
+docker run --rm -d --name test1 -p 8085:80  atos06/gke-vue:d26b1a7
+# puis localhost:8085
 
 ###  cluster k8s ######
 
-# creation  des images
+# creation  des images dans le docker hub
 cd vue-jwt/frontend
 docker build -t atos06/gke-vue .
 docker push atos06/gke-vue 
@@ -49,8 +53,8 @@ docker push atos06/gke-node-api
 
 ### Frontend ######
 
-# creation du secret dockerhub pour l'acces a l'image privé atos06/gke-vue dockerhub
-# creer un secret sous dockerhub : myaccoubt->security-> new access toke  
+# creation du secret dans le cluster qu'on appelle docker-hub-secret pour l'acces a l'image privé atos06/gke-vue dockerhub
+# creer un secret sous dockerhub : myaccoubt->security-> new access token  
 kubectl create secret docker-registry docker-hub-secret --docker-server=https://index.docker.io/v1/ --docker-username=atos06 --docker-password=dckr_pat_gGvb9n4bUuA01_RUjj2QBI8S0O8 --docker-email=francois.picot63@gmail.com
 
 # deploiement du frontend et le service d 'acces aux pods
@@ -59,7 +63,7 @@ kubectl apply -f nginx-configmap.yaml
 kubectl apply -f frontend.deployment.yaml 
 kubectl apply -f frontend.service.yaml 
 kubectl get pod -w
-kubectl get events // si pb de statuskubectl apply -f frontend.deployment.yaml
+kubectl get events # si pb de status kubectl apply -f frontend.deployment.yaml
 
 
 ### mongo db #####
@@ -68,8 +72,11 @@ kubectl get events // si pb de statuskubectl apply -f frontend.deployment.yaml
 cd projet-GCP/k8s/helm
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm install -f mongodb.yaml mongodb bitnami/mongodb
+kubectl get pod -w
 
-# test de a connexion mongodb avec compass
+
+# test de a connexion mongodb avec compass (noyez le mot de passe de la commande)
+# lancer compass
 kubectl get secret --namespace default mongodb -o jsonpath="{.data.mongodb-root-password}" | base64 -d
 kubectl port-forward --namespace default service/mongodb-headless 27017
 Cliquez sur Fill in connection fields  en direct puis sur Authentification > Username / Password.
@@ -88,7 +95,7 @@ kubectl get secrets
 kubectl apply -f api.deployment.yaml 
 kubectl apply -f api.service.yaml 
 kubectl get pod -w
-kubectl logs  api-deployment-b687dd897-hvpxx
+kubectl logs  api-deployment-b687dd897-hvpxx  // doit retourner Connected !
 
 
 ### Ingress ####
@@ -96,5 +103,48 @@ kubectl logs  api-deployment-b687dd897-hvpxx
 # lancement : pour voir ingress recherche "services kunertes" dans gcp
 kubectl apply -f ingress.yaml 
 kubectl get ingress app-ingress
+
+
+###  Backup mongodb #####
+
+# lancer le cron de backup
+kubectl apply -f mongodb-backup-cronjob.yaml 
+kubectl get cronjob.batch mongodb-backup  -w # attendre qu'il soit actif=1
+kubectl get pod -w
+kubectl logs mongodb-backup-28383184-vv9wl
+kubectl delete cronjobs.batch  mongodb-backup 
+
+
+#### creation d'un dump stocker dans le cloud ####
+
+# creer un bucket : voir doc 
+# cloud storage-> bucket -> creer : mongodb-backup-cformidable par exemple
+
+
+# creer un compte de service
+gcloud iam service-accounts create  cronjob-mongodb
+
+# recuperer l'id du projet apres le @
+gcloud iam service-accounts list
+
+# affecter les droits sur ce compte
+gcloud projects add-iam-policy-binding composite-jetty-134823 --member='serviceAccount:cronjob-mongodb@composite-jetty-134823.iam.gserviceaccount.com' --role='roles/storage.admin'
+
+# generer la cle dans un fichier json
+gcloud iam service-accounts keys create --iam-account cronjob-mongodb@composite-jetty-134823.iam.gserviceaccount.com service-account.json
+cat service-account.json
+kubectl create secret generic gcs-credentials --from-file service-account.json
+
+# lancer le cron de backup
+kubectl apply -f mongodb-backup-cronjob.yaml 
+
+# attendre que le job  soit actif=1
+kubectl get cronjob.batch mongodb-backup -w
+kubectl get pod -w
+kubectl logs mongodb-backup-28383184-vv9wl  # allez voir le bucket et les versions 
+
+# arreter le cron
+kubectl delete cronjobs.batch  mongodb-backup
+kubectl get cronjob.batch
 
 

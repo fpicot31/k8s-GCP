@@ -9,16 +9,28 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+          volumes:
+            - name : gcs-credentials
+              secret : 
+                secretName : gcs-credentials
           containers:
             - name: mongodb-backup
-              image: bitnami/mongodb
+              image: atos06/backupmongodbgcs
               command:
                 - "/bin/sh"
                 - "-c"
                 - |
+                  echo "Authentification sur GCS ..."
+                  gcloud auth activate-service-account --key-file=/etc/gcs-credentials/service-account.json
                   echo "Création du dump..."
-                  mongodump --uri="mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${MONGODB_HOST}" --out=/tmp/dump
+                  mongodump --uri="mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${MONGODB_HOST}" --out="/tmp/dump.gz" --gzip
                   echo "Dump créé !"
+                  echo "Upload dump on GCS ..."
+                  gsutil cp -r /tmp/dump.gz gs://mongodb-backup-cformidable
+                  echo "Upload finished !"
+              volumeMounts:
+                - name : gcs-credentials
+                  mountPath : /etc/gcs-credentials
               env:
                 - name: MONGODB_PASSWORD
                   valueFrom:

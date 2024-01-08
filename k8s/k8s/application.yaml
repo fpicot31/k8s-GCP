@@ -1,12 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: vue-auth
+  name: vue-app-tes
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/fpicot31/k8s-GCP.git 
+    repoURL: https://github.com/fpicot31/k8s-ArgoCD-code.git
     targetRevision: master
     path: k8s
   destination:
