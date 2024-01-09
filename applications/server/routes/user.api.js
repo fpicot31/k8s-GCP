@@ -1,9 +1,8 @@
-
 const router = require('express').Router();
 const UserModel = require('../database/models/user.model');
 const bcrypt = require('bcrypt');
 const jsonwebtoken = require('jsonwebtoken');
-const publicKey = process.env.JWT_PUBLIC_KEY;
+const { keyPub } = require('../env/keys');
 
 router.post('/', async (req, res) => {
   const body = req.body;
@@ -24,7 +23,7 @@ router.get('/current', async (req, res) => {
   const token = req.cookies.token;
   if (token) {
     try {
-      const decodedToken = jsonwebtoken.verify(token, publicKey);
+      const decodedToken = jsonwebtoken.verify(token, keyPub);
       const user = await UserModel.findById(decodedToken.sub)
         .select('-password -__v')
         .exec();
@@ -41,4 +40,4 @@ router.get('/current', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;
