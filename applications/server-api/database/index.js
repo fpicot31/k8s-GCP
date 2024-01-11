@@ -4,6 +4,7 @@ const mongodbPassword = encodeURIComponent(process.env.MONGODB_PASSWORD);
 const mongodbhost = process.env.MONGODB_HOST;
 
 const connectionString = `mongodb://${mongodbUser}:${mongodbPassword}@${mongodbhost}`;
+//const connectionString = `mongodb+srv://oceane:oceane@cluster0.z5arjan.mongodb.net/gke-vue?retryWrites=true&w=majority`;
 
 mongoose
     .connect(connectionString)

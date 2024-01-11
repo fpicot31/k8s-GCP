@@ -28,13 +28,13 @@ gcloud container clusters get-credentials cformidable --region europe-west1 --pr
 # exemple url de connectioon :  mongodb+srv://oceane:oceane@cluster0.z5arjan.mongodb.net/gke-vue
 
 # tester l'application qui aune application front vue et une application backend node qui fournit l'API
-cd app/frontend
-npm install
-npm run dev
-
 cd app/server
 npm install express
 npm start
+
+cd app/frontend
+npm install
+npm run dev
 
 http://localhost:5173/
 
@@ -44,7 +44,7 @@ cd app/frontend
 docker build -t atos06/gke-vue .
 docker push atos06/gke-vue 
 
-cd app/server
+cd app/server-api
 docker build -t atos06/gke-node-api .
 docker push atos06/gke-node-api
 
