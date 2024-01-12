@@ -39,7 +39,7 @@ npm run dev
 http://localhost:5173/
 
 
-### creation  des images dans le docker hub ###
+### creation  des images dans le docker hub pour k8s ###
 cd app/frontend
 docker build -t atos06/gke-vue .
 docker push atos06/gke-vue 
@@ -60,14 +60,6 @@ cd projet-GCP/k8s/k8s
 # creer un secret sous dockerhub : myaccoubt->security-> new access token  
 kubectl create secret docker-registry docker-hub-secret --docker-server=https://index.docker.io/v1/ --docker-username=atos06 --docker-password=dckr_pat_gGvb9n4bUuA01_RUjj2QBI8S0O8 --docker-email=francois.picot63@gmail.com
 
-# deploiement du frontend et le service d 'acces aux pods
-kubectl apply -f nginx-configmap.yaml 
-kubectl apply -f frontend.deployment.yaml 
-kubectl apply -f frontend.service.yaml 
-kubectl get pod -w
-kubectl get events # si pb de status kubectl apply -f frontend.deployment.yaml
-
-
 # Creation de la base mongodb dans le cluster
 cd projet-GCP/k8s/helm
 helm repo add bitnami https://charts.bitnami.com/bitnami
@@ -87,13 +79,21 @@ cd projet-GCP/k8s/k8s
 bash ./generate_secrets.sh 
 kubectl get secrets
 
-# lancement du service backend node api
-kubectl apply -f api.deployment.yaml 
+# deploiement du service backend node api
+kubectl apply -f api.deployment.yaml # forcer un redeploiement : kubectl rollout restart deployment api-deployment
 kubectl apply -f api.service.yaml 
 kubectl get pod -w
-kubectl logs  api-deployment-b687dd897-hvpxx  // doit retourner Connected !
+kubectl logs  api-deployment-b687dd897-hvpxx  # doit retourner Connected !
+
+# deploiement du frontend et le service d 'acces aux pods
+kubectl apply -f frontend.deployment.yaml # forcer un redeploiement : kubectl rollout restart deployment frontend-deployment
+kubectl apply -f frontend.service.yaml 
+kubectl get pod -w
+kubectl get events # si pb de status kubectl apply -f frontend.deployment.yaml
+
 
 # ingress : pour voir ingress recherche "services kubnertes" dans gcp
+kubectl apply -f nginx-configmap.yaml 
 kubectl apply -f ingress.yaml 
 kubectl get ingress app-ingress
 # acceder à l'ihm avec l'IP externe ingress

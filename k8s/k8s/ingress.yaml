@@ -4,16 +4,22 @@ metadata:
   name: app-ingress
 spec:
   rules:
-    - host: nginx-cformidable.fr
-      http:
-        paths:
-        - path: /api
-          pathType: Prefix
-          backend:
-            service:
-              name: api-service
-              port:
-                number: 80
+  - http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
   defaultBackend:
     service:
       name: frontend-service
